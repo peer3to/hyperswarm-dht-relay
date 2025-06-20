@@ -11,26 +11,22 @@ const PORT = process.argv[2] || 8094;
 const MAX_CONNECTIONS = parseInt(process.argv[3]) || 2;
 
 console.log("Integration test: Connection limits with real DHT peers");
-console.log(`Server: localhost:${PORT}`);
-console.log(`Max connections allowed: ${MAX_CONNECTIONS}`);
+console.log(`Testing ${MAX_CONNECTIONS} max connections...`);
 
 async function testConnectionLimits() {
   // Read peer keys that were set up by the shell script
-  console.log("\nStep 1: Loading pre-existing DHT peers...");
   let peerKeys;
   try {
     const peerKeysHex = JSON.parse(
       fs.readFileSync("/tmp/dht-peers.json", "utf8")
     );
     peerKeys = peerKeysHex.map((hex) => Buffer.from(hex, "hex"));
-    console.log(`Loaded ${peerKeys.length} peer public keys`);
   } catch (err) {
     throw new Error(
       "Could not load peer keys - make sure DHT peers are running"
     );
   }
 
-  console.log("\nStep 2: Creating relay client...");
   const socket = new WebSocket(`ws://localhost:${PORT}`);
   await new Promise((resolve, reject) => {
     socket.onopen = resolve;
@@ -40,17 +36,9 @@ async function testConnectionLimits() {
 
   const relayClient = new RelayClient(new Stream(true, socket));
   await relayClient.ready();
-  console.log("Relay client ready");
 
   console.log(`\nStep 3: Testing connection limits...`);
-  console.log(
-    `Attempting to connect to ${peerKeys.length} peers through relay`
-  );
-  console.log(
-    `Expected: First ${MAX_CONNECTIONS} allowed, remaining ${
-      peerKeys.length - MAX_CONNECTIONS
-    } denied`
-  );
+  console.log(`Attempting ${peerKeys.length} connections (expect ${MAX_CONNECTIONS} to succeed)...`);
 
   let successful = 0;
   let resourceLimitDenied = 0;
@@ -59,8 +47,6 @@ async function testConnectionLimits() {
   for (let i = 0; i < peerKeys.length; i++) {
     const peerKey = peerKeys[i];
     const peerNum = i + 1;
-
-    console.log(`\nTrying connection ${peerNum}...`);
 
     try {
       const connection = relayClient.connect(peerKey);
@@ -76,31 +62,26 @@ async function testConnectionLimits() {
         };
 
         connection.on("connect", () => {
-          console.log(`Connection ${peerNum}: SUCCESS`);
           successful++;
           finish();
         });
         
         connection.on("error", (err) => {
           if (err.message.includes("limit exceeded")) {
-            console.log(err.message);
             resourceLimitDenied++;
             finish();
           } else {
-            console.log(`Connection ${peerNum}: ERROR - ${err.message}`);
             otherErrors++;
             finish();
           }
         });
         
         const timeoutId = setTimeout(() => {
-          console.log(`Connection ${peerNum}: TIMEOUT`);
           otherErrors++;
           finish();
         }, 2000);
       });
     } catch (err) {
-      console.log(`Connection ${peerNum}: EXCEPTION - ${err.message}`);
       otherErrors++;
     }
   }
@@ -113,18 +94,15 @@ async function testConnectionLimits() {
     `Expected resource limit denials: ${peerKeys.length - MAX_CONNECTIONS}`
   );
 
-  // Test passes if we get the expected number of resource limit denials
   const expectedDenials = peerKeys.length - MAX_CONNECTIONS;
+  console.log(`✓ ${successful} successful, ${resourceLimitDenied} denied (expected ${expectedDenials})`);
+  
+  // Test passes if we get the expected number of resource limit denials
   if (resourceLimitDenied == expectedDenials) {
     console.log("✓ Connection limit test PASSED");
-    console.log("Integration test PASSED");
     process.exit(0);
   } else {
     console.log("✗ Connection limit test FAILED");
-    console.log(
-      `Expected exactly ${expectedDenials} resource limit denials, got ${resourceLimitDenied}`
-    );
-    console.log("Integration test FAILED");
     process.exit(1);
   }
 }

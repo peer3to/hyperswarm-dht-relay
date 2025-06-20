@@ -5,12 +5,13 @@
 # Architecture:
 #   1. Start DHT RELAY SERVER (bin.js) in background with resource limits
 #   2. Start DHT PEERS in background as connection targets
-#   3. Start TEST CLIENT (integration.mjs) that connects to the server  
-#   4. Client tests connection limits against the pre-existing peers
-#   5. Clean up all processes
+#   3. Run MULTIPLE TEST CLIENTS that test different limits
+#   4. Clean up all processes
 
 PORT=8094
 MAX_CONNECTIONS=2
+DATA_LIMIT=1000
+TOTAL_DATA_LIMIT=1800
 RELAY_PID=""
 PEER_PIDS=""
 
@@ -38,8 +39,11 @@ echo "================================="
 rm -f /tmp/dht-peers.json
 
 # Step 1: Start DHT RELAY SERVER with resource limits
-echo "Starting DHT relay server on port $PORT with max $MAX_CONNECTIONS connections..."
-node bin.js --port $PORT --max-connections $MAX_CONNECTIONS --max-data-per-connection 1000 --max-data-rate-per-second 500 &
+echo "Starting DHT relay server on port $PORT with resource limits..."
+echo "  - Max connections: $MAX_CONNECTIONS"
+echo "  - Max data per connection: ${DATA_LIMIT} bytes"
+echo "  - Max total data per client: ${TOTAL_DATA_LIMIT} bytes"
+node bin.js --port $PORT --max-connections $MAX_CONNECTIONS --max-data-per-connection $DATA_LIMIT --max-total-data-per-client $TOTAL_DATA_LIMIT &
 RELAY_PID=$!
 
 # Wait for server to be ready
@@ -78,12 +82,81 @@ fi
 
 echo "DHT relay server running (PID: $RELAY_PID)"
 echo "DHT peers running"
+echo ""
 
-# Step 3: Run TEST CLIENT that will connect to the server and test limits
-echo "Running integration test client..."
-if node test/integration.mjs $PORT $MAX_CONNECTIONS; then
-    echo "Integration tests PASSED"
+# Step 3: Run ALL TEST CLIENTS against the same infrastructure
+echo "Running integration tests..."
+echo "============================="
+
+# Test A: Connection limits
+echo "Test A: Connection limits"
+echo "-------------------------"
+if node test/integration-connection-limits.mjs $PORT $MAX_CONNECTIONS; then
+    echo "✓ Connection limits test PASSED"
 else
-    echo "Integration tests FAILED"
+    echo "✗ Connection limits test FAILED"
     exit 1
-fi 
+fi
+
+echo ""
+
+# Test B: Data per connection limits  
+echo "Test B: Data per connection limits"
+echo "----------------------------------"
+if node test/integration-data-limits.mjs $PORT $DATA_LIMIT; then
+    echo "✓ Data limits test PASSED"
+else
+    echo "✗ Data limits test FAILED"
+    exit 1
+fi
+
+echo ""
+
+# Test C: Total data limits per public key
+echo "Test C: Total data limits per public key"
+echo "----------------------------------------"
+if node test/integration-total-data-limits.mjs $PORT $TOTAL_DATA_LIMIT; then
+    echo "✓ Total data limits test PASSED"
+else
+    echo "✗ Total data limits test FAILED"
+    exit 1
+fi
+
+echo ""
+
+# Test D: Rate limits (requires separate server configuration)
+echo "Test D: Rate limits"
+echo "-------------------"
+echo "Restarting server with rate limiting enabled..."
+
+# Kill current server
+if [ ! -z "$RELAY_PID" ]; then
+    kill $RELAY_PID 2>/dev/null || true
+    wait $RELAY_PID 2>/dev/null || true
+fi
+
+# Start new server with rate limiting
+RATE_LIMIT=200  # 200 bytes/sec
+echo "Starting server with ${RATE_LIMIT} bytes/sec rate limit..."
+node bin.js --port $PORT --max-data-rate-per-second $RATE_LIMIT &
+RELAY_PID=$!
+
+# Wait for server to be ready
+sleep 2
+
+# Check if server started successfully
+if ! kill -0 $RELAY_PID 2>/dev/null; then
+    echo "ERROR: Rate-limited relay server failed to start"
+    exit 1
+fi
+
+# Run rate limit test
+if node test/integration-rate-limits.mjs $PORT $RATE_LIMIT; then
+    echo "✓ Rate limits test PASSED"
+else
+    echo "✗ Rate limits test FAILED"
+    exit 1
+fi
+
+echo ""
+echo "All integration tests PASSED" 
