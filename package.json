@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "test": "standard && brittle test/*.mjs",
-    "test:integration": "bash test/integration.sh",
+    "test:integration": "bash test/integration/integration.sh",
     "test:all": "npm run test && npm run test:integration"
   },
   "repository": {

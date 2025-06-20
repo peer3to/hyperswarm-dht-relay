@@ -4,8 +4,8 @@ if (typeof WebSocket === "undefined") {
   global.WebSocket = (await import("ws")).default;
 }
 
-import RelayClient from "../index.js";
-import Stream from "../ws.js";
+import RelayClient from "../../index.js";
+import Stream from "../../ws.js";
 
 const PORT = process.argv[2] || 8094;
 const RATE_LIMIT = parseInt(process.argv[3]) || 200; // bytes/sec
