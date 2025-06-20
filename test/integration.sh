@@ -15,6 +15,10 @@ TOTAL_DATA_LIMIT=1800
 RELAY_PID=""
 PEER_PIDS=""
 
+# Track test results
+declare -a test_results
+declare -a test_names
+
 cleanup() {
     echo "Stopping all processes..."
     if [ ! -z "$RELAY_PID" ]; then
@@ -92,10 +96,11 @@ echo "============================="
 echo "Test A: Connection limits"
 echo "-------------------------"
 if node test/integration-connection-limits.mjs $PORT $MAX_CONNECTIONS; then
-    echo "✓ Connection limits test PASSED"
+    test_results+=("PASSED")
+    test_names+=("Connection limits")
 else
-    echo "✗ Connection limits test FAILED"
-    exit 1
+    test_results+=("FAILED")
+    test_names+=("Connection limits")
 fi
 
 echo ""
@@ -104,10 +109,11 @@ echo ""
 echo "Test B: Data per connection limits"
 echo "----------------------------------"
 if node test/integration-data-limits.mjs $PORT $DATA_LIMIT; then
-    echo "✓ Data limits test PASSED"
+    test_results+=("PASSED")
+    test_names+=("Data per connection limits")
 else
-    echo "✗ Data limits test FAILED"
-    exit 1
+    test_results+=("FAILED")
+    test_names+=("Data per connection limits")
 fi
 
 echo ""
@@ -116,10 +122,11 @@ echo ""
 echo "Test C: Total data limits per public key"
 echo "----------------------------------------"
 if node test/integration-total-data-limits.mjs $PORT $TOTAL_DATA_LIMIT; then
-    echo "✓ Total data limits test PASSED"
+    test_results+=("PASSED")
+    test_names+=("Total data limits per public key")
 else
-    echo "✗ Total data limits test FAILED"
-    exit 1
+    test_results+=("FAILED")
+    test_names+=("Total data limits per public key")
 fi
 
 echo ""
@@ -152,11 +159,36 @@ fi
 
 # Run rate limit test
 if node test/integration-rate-limits.mjs $PORT $RATE_LIMIT; then
-    echo "✓ Rate limits test PASSED"
+    test_results+=("PASSED")
+    test_names+=("Rate limits")
 else
-    echo "✗ Rate limits test FAILED"
-    exit 1
+    test_results+=("FAILED")
+    test_names+=("Rate limits")
 fi
 
 echo ""
-echo "All integration tests PASSED" 
+
+# Print test results summary
+echo "========================================="
+echo "Integration Test Results Summary"
+echo "========================================="
+failed_count=0
+for i in "${!test_results[@]}"; do
+    status="${test_results[$i]}"
+    name="${test_names[$i]}"
+    if [ "$status" = "PASSED" ]; then
+        echo "✓ $name: PASSED"
+    else
+        echo "✗ $name: FAILED"
+        ((failed_count++))
+    fi
+done
+
+echo ""
+if [ $failed_count -eq 0 ]; then
+    echo "All integration tests PASSED! 🎉"
+    exit 0
+else
+    echo "$failed_count test(s) FAILED"
+    exit 1
+fi 
