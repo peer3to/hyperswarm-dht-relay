@@ -6,15 +6,15 @@
  * direct WebRTC connections for actual data transfer.
  */
 module.exports = {
-  // Connection limits - for signaling, each peer typically needs only 1 connection
-  maxConnections: 1,
+  // Connection limits 
+  maxConnections: 10,
 
   // Data limits (signaling messages are small)
-  maxDataPerConnection: 10 * 1024, // 10KB per connection (generous for DHT messages)
+  maxDataPerConnection: 50 * 1024, // 50KB per connection
   maxTotalDataPerClient: null, // Auto-calculated: maxConnections * maxDataPerConnection
 
   // Rate limiting (prevent spam)
-  maxDataRatePerSecond: 5 * 1024, // 5KB/s (adequate for occasional DHT updates)
+  maxDataRatePerSecond: 10 * 1024, // 10KB/s
 
   // Message type restrictions
   allowedMessageTypes: [
