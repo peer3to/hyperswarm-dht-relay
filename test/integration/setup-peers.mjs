@@ -17,44 +17,43 @@ process.on('uncaughtException', (err) => {
 
 console.log(`Setting up ${NUM_PEERS} DHT peers...`)
 
-async function setupPeers() {
+async function setupPeers () {
   try {
     const dht = new DHT()
     await dht.ready()
     console.log('DHT ready')
-    
+
     const peers = []
-    
+
     for (let i = 1; i <= NUM_PEERS; i++) {
       console.log(`Creating peer ${i}...`)
       const keyPair = DHT.keyPair()
       const server = dht.createServer()
-      
+
       server.on('connection', (conn) => {
         console.log(`Peer ${i} got connection`)
       })
-      
+
       // Add timeout to server.listen()
       await Promise.race([
         server.listen(keyPair),
-        new Promise((_, reject) => 
+        new Promise((resolve, reject) =>
           setTimeout(() => reject(new Error(`Peer ${i} listen timeout`)), 5000)
         )
       ])
-      
+
       peers.push(keyPair.publicKey.toString('hex'))
       console.log(`Peer ${i} listening (${peers.length}/${NUM_PEERS})`)
     }
-    
+
     console.log(`All ${NUM_PEERS} peers created, writing to file...`)
-    
+
     // Write peer keys to file for test to read
     fs.writeFileSync('/tmp/dht-peers.json', JSON.stringify(peers))
     console.log(`SUCCESS: DHT peers ready - ${peers.length} keys written to file`)
-    
+
     // Keep process alive
     setInterval(() => {}, 1000)
-    
   } catch (err) {
     console.error('Peer setup error:', err.message)
     console.error(err.stack)
@@ -62,4 +61,4 @@ async function setupPeers() {
   }
 }
 
-setupPeers() 
+setupPeers()
