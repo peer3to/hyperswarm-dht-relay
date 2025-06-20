@@ -8,6 +8,11 @@ const { WebSocketServer } = require('ws')
 const { relay } = require('@hyperswarm/dht-relay')
 const Stream = require('@hyperswarm/dht-relay/ws')
 const goodbye = require('graceful-goodbye')
+const { loadLimitsConfig } = require('./lib/config')
+const { argv } = require('./lib/utils')
+
+// Load resource limits from config
+const resourceLimits = loadLimitsConfig()
 
 const behindProxy = argv('behind-proxy', Boolean)
 const port = argv('port', Number, 49443)
@@ -40,12 +45,15 @@ wss.on('connection', function (socket, req) {
     console.log('Connection closed (' + connections.size + ')', remoteInfo)
   })
 
-  relay(node, new Stream(false, socket))
+  relay(node, new Stream(false, socket), { resourceManagerOptions: resourceLimits })
 })
 
 server.listen(port, host, function () {
   const addr = server.address()
   console.log('Relay is listening at host', addr.address + ' (' + addr.family + ')', 'on port', addr.port)
+  console.log('Resource limits: max connections per client =', resourceLimits.maxConnections)
+  console.log('Resource limits: max data per connection =', Math.round(resourceLimits.maxDataPerConnection / 1024) + 'KB')
+  console.log('Resource limits: max data rate per second =', Math.round(resourceLimits.maxDataRatePerSecond / 1024) + 'KB/s')
 })
 
 goodbye(async function () {
@@ -71,25 +79,4 @@ function getRemoteAddress (req) {
 
 function waitForClose (emitter) {
   return new Promise(resolve => emitter.once('close', resolve))
-}
-
-function argv (name, type, defaultValue = null) {
-  const i = process.argv.indexOf('--' + name)
-  if (type === Boolean) return i > -1
-  if (i === -1) return defaultValue
-
-  const hasValue = i < process.argv.length - 1
-  if (!hasValue) return defaultValue
-
-  let value = process.argv[i + 1]
-
-  if (type === Number) {
-    value = parseInt(value, 10)
-    if (Number.isNaN(value)) throw new Error('Invalid CLI value for argument --' + name)
-    return value
-  }
-
-  if (type === String) return value
-
-  throw new Error('Invalid CLI type for argument --' + name)
 }
