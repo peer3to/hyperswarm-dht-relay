@@ -131,8 +131,22 @@ fi
 
 echo ""
 
-# Test D: Rate limits (requires separate server configuration)
-echo "Test D: Rate limits"
+# Test D: Message type filtering (no server restart needed)
+echo "Test D: Message type filtering"
+echo "------------------------------"
+ALLOWED_TYPES="lookup,announce"
+if node test/integration-message-types.mjs $PORT $ALLOWED_TYPES; then
+    test_results+=("PASSED")
+    test_names+=("Message type filtering")
+else
+    test_results+=("FAILED")
+    test_names+=("Message type filtering")
+fi
+
+echo ""
+
+# Test E: Rate limits (requires separate server configuration)
+echo "Test E: Rate limits"
 echo "-------------------"
 echo "Restarting server with rate limiting enabled..."
 

@@ -56,10 +56,12 @@ server.listen(port, host, function () {
   const maxConnections = resourceLimits.maxConnections !== undefined ? resourceLimits.maxConnections : 'no limit'
   const maxDataPerConnection = resourceLimits.maxDataPerConnection !== undefined ? Math.round(resourceLimits.maxDataPerConnection / 1024) + 'KB' : 'no limit'
   const maxDataRate = resourceLimits.maxDataRatePerSecond !== undefined ? Math.round(resourceLimits.maxDataRatePerSecond / 1024) + 'KB/s' : 'no limit'
+  const allowedMessageTypes = resourceLimits.allowedMessageTypes ? resourceLimits.allowedMessageTypes.join(', ') : 'all types'
   
   console.log('Resource limits: max connections per client =', maxConnections)
   console.log('Resource limits: max data per connection =', maxDataPerConnection)
   console.log('Resource limits: max data rate per second =', maxDataRate)
+  console.log('Resource limits: allowed message types =', allowedMessageTypes)
 })
 
 goodbye(async function () {
