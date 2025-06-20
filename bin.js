@@ -11,7 +11,7 @@ const goodbye = require('graceful-goodbye')
 const { loadLimitsConfig } = require('./lib/config')
 const { argv } = require('./lib/utils')
 
-// Load resource limits from config
+
 const resourceLimits = loadLimitsConfig()
 
 const behindProxy = argv('behind-proxy', Boolean)
