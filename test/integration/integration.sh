@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Integration test: Tests DHT relay resource limits with real peers
-#
+
 # Architecture:
 #   1. Start DHT RELAY SERVER (bin.js) in background with resource limits
 #   2. Start DHT PEERS in background as connection targets
