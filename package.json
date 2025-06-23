@@ -19,7 +19,10 @@
     "lib/**/*.js"
   ],
   "scripts": {
-    "test": "standard && brittle test/*.mjs"
+    "test": "standard && brittle test/*.mjs",
+    "test:integration": "bash test/integration/integration.sh",
+    "test:all": "npm run test && npm run test:integration",
+    "lint": "standard --fix"
   },
   "repository": {
     "type": "git",

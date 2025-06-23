@@ -31,6 +31,34 @@ const dht = new DHT(stream)
 
 From here, the API matches that of the Hyperswarm DHT: <https://github.com/holepunchto/hyperdht#api>
 
+### Resource Protection
+
+The relay supports configurable resource protection to prevent abuse and ensure fair usage:
+
+```js
+import DHT from 'hyperdht'
+import { relay } from '@hyperswarm/dht-relay'
+
+const resourceManagerOptions = {
+  maxConnections: 5,               // Max connections per client identifier
+  maxDataPerConnection: 25 * 1024, // Max outgoing data per connection (25KB)
+  maxTotalDataPerClient: null,     // Auto-calculated: maxConnections * maxDataPerConnection
+  maxDataRatePerSecond: 5 * 1024,  // Max outgoing data rate per second (5KB/s)
+  allowedMessageTypes: ['lookup', 'announce'] // Allowed message types
+}
+
+relay(new DHT(), stream, { resourceManagerOptions })
+```
+
+**Available limits:**
+- `maxConnections` - Maximum number of simultaneous connections per client identifier (default: no limit)
+- `maxDataPerConnection` - Maximum outgoing data transfer per individual connection in bytes (default: no limit)
+- `maxTotalDataPerClient` - Maximum total outgoing data across all connections per client identifier (default: no limit)
+- `maxDataRatePerSecond` - Maximum outgoing data transfer rate per second in bytes (default: no limit)
+- `allowedMessageTypes` - Array of allowed message types (default: no limit)
+
+**Note:** The resource manager has no built-in defaults - all limits are unlimited unless explicitly configured. The CLI provides a set of default limits when using `--default-limits` (see CLI section below). Client identification can be configured via the `--identifier-strategy` option (default: by public key).
+
 ### Transports
 
 As a convenience, we provide stream wrappers for common transport protocols. These may or may not be appropriate for your particular use case and so your mileage may vary.
@@ -113,10 +141,75 @@ npm install -g @hyperswarm/dht-relay
 
 Run a DHT relay server:
 ```sh
-dht-relay # [--port 49443] [--host 0.0.0.0] [--cert <path fullchain.pem>] [--key <path privkey.pem>]
+dht-relay [options]
+```
+
+**Available options:**
+- `--port` - Port to listen on (default: 49443)
+- `--host` - Host to bind to (default: 0.0.0.0)
+- `--cert` - Path to SSL certificate file (for HTTPS/WSS)
+- `--key` - Path to SSL private key file (for HTTPS/WSS)
+- `--behind-proxy` - Set if running behind a proxy like NGINX (fixes logging)
+- `--identifier-strategy` - Client identification strategy: `publicKey` (default), `ip`, or `address`
+
+**Resource limit options:**
+- `--default-limits` - Apply default resource limits (see below)
+- `--max-connections` - Maximum connections per client identifier
+- `--max-data-per-connection` - Maximum outgoing data per connection in bytes
+- `--max-total-data-per-client` - Maximum total outgoing data per client identifier
+- `--max-data-rate-per-second` - Maximum outgoing data rate per second in bytes
+- `--allowed-message-types` - Comma-separated list of allowed message types
+
+**Default limits (applied with `--default-limits`):**
+- `maxConnections: 10` - Allow up to 10 connections per client identifier
+- `maxDataPerConnection: 50KB` - 50KB data limit per connection
+- `maxDataRatePerSecond: 10KB/s` - 10KB/s rate limit
+- `allowedMessageTypes: ['lookup', 'announce', 'connect']` - Only allow DHT signaling messages
+
+**Client identification strategies:**
+- `publicKey` (default) - Identify clients by their public key (e.g., "a1b2c3...")
+- `ip` - Identify clients by their IP address and port (e.g., "192.168.1.100:54321")
+- `address` - Identify clients by on chain address
+
+**Examples:**
+
+Basic server with no limits:
+```sh
+dht-relay --port 8080
+```
+
+Server with default signaling limits:
+```sh  
+dht-relay --port 8080 --default-limits
+```
+
+Server identifying clients by IP address instead of public key:
+```sh
+dht-relay --port 8080 --identifier-strategy ip --max-connections 5
+```
+
+Server with custom limits:
+```sh
+dht-relay --port 8080 \
+  --max-connections 5 \
+  --max-data-per-connection 25600 \
+  --max-data-rate-per-second 5120 \
+  --allowed-message-types lookup,announce
 ```
 
 If running behind a proxy like NGINX then add `--behind-proxy` so logging info is correct.
+
+## Testing
+
+Run the test suite:
+
+```sh
+npm test                    # Unit tests
+npm run test:integration    # Integration tests for resource protection
+npm run test:all           # All tests
+```
+
+The integration tests validate resource limits, rate limiting, and message type filtering.
 
 ## Protocol
 

@@ -4,6 +4,7 @@ import { none } from 'compact-encoding'
 import test from 'brittle'
 
 import DHT, { relay } from '../index.js'
+import { testResourceManager } from './helpers/test_resource_manager.mjs'
 
 import { withDHT } from './helpers/with-dht.mjs'
 
@@ -33,7 +34,10 @@ test('relay over existing muxer', (t) =>
       return m
     }
 
-    relay(dht, mux(a))
+    // Create a ResourceManager instance for the relay
+    const resourceManager = testResourceManager()
+
+    relay(dht, mux(a), resourceManager)
 
     const proxy = new DHT(mux(b))
 
