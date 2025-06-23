@@ -1,11 +1,51 @@
-import { ResourceManager } from '../../lib/resource-manager.js'
+// No-op implementation of ResourceManager for testing
+// Implements the same interface but allows all operations without restrictions
+class NoOpResourceManager {
+  checkConnection () {
+    return { allowed: true }
+  }
+
+  checkDataTransfer () {
+    return { allowed: true }
+  }
+
+  recordConnection () {
+    return 1 // Simulate successful recording
+  }
+
+  recordDisconnection () {
+    return 0 // Simulate successful cleanup
+  }
+
+  recordDataTransfer () {
+    return true
+  }
+
+  canSendData () {
+    return { allowed: true }
+  }
+
+  recordDataSent () {
+    return true
+  }
+
+  checkMessage () {
+    return { allowed: true }
+  }
+
+  getUsage () {
+    return {
+      connections: 0,
+      totalDataUsage: 0,
+      activeConnections: new Set()
+    }
+  }
+
+  getConnectionData () {
+    return undefined
+  }
+}
 
 export function testResourceManager () {
-  return new ResourceManager({
-    maxConnections: 100,
-    maxDataPerConnection: 10 * 1024 * 1024, // 10MB
-    maxTotalDataPerClient: 50 * 1024 * 1024, // 50MB
-    maxDataRatePerSecond: 1024 * 1024, // 1MB/s
-    allowedMessageTypes: ['connect', 'data', 'lookup', 'announce', 'unannounce', 'listen', 'destroy', 'end', 'close']
-  })
+  return new NoOpResourceManager()
 }
