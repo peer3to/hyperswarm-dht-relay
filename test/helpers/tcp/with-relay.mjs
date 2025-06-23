@@ -2,11 +2,15 @@ import net from 'net'
 
 import DHT, { relay } from '../../../index.js'
 import Stream from '../../../tcp.js'
+import { testResourceManager } from '../test_resource_manager.mjs'
 
 export async function withRelay (dht, cb) {
   const server = net.createServer().listen()
 
-  server.on('connection', (socket) => relay(dht, new Stream(false, socket)))
+  // Create a ResourceManager instance with default/test-friendly limits
+  const resourceManager = testResourceManager()
+
+  server.on('connection', (socket) => relay(dht, new Stream(false, socket), resourceManager))
 
   try {
     await cb(withDHT)

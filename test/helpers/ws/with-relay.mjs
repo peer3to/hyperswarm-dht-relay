@@ -2,11 +2,14 @@ import { WebSocketServer, WebSocket } from 'ws'
 
 import DHT, { relay } from '../../../index.js'
 import Stream from '../../../ws.js'
+import { testResourceManager } from '../test_resource_manager.mjs'
 
 export async function withRelay (dht, cb) {
   const server = new WebSocketServer({ port: 0 })
 
-  server.on('connection', (socket) => relay(dht, new Stream(false, socket)))
+  const resourceManager = testResourceManager()
+
+  server.on('connection', (socket) => relay(dht, new Stream(false, socket), resourceManager))
 
   try {
     await cb(withDHT)
