@@ -18,8 +18,8 @@ module.exports = {
 
   // Message type restrictions
   allowedMessageTypes: [
-    "lookup", // Find peers in DHT
-    "announce", // Announce presence in DHT
-    "connect", // Establish connections
-  ],
-};
+    'lookup', // Find peers in DHT
+    'announce', // Announce presence in DHT
+    'connect' // Establish connections
+  ]
+}

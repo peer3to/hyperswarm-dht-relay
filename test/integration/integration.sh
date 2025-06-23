@@ -181,6 +181,42 @@ fi
 
 echo ""
 
+# Test F: Identifier strategy - bypassing attempts
+echo "Test F: Identifier strategy bypass attempts"
+echo "-------------------------------------------"
+echo "Restarting server with address-based identification..."
+
+# Kill current server
+if [ ! -z "$RELAY_PID" ]; then
+    kill $RELAY_PID 2>/dev/null || true
+    wait $RELAY_PID 2>/dev/null || true
+fi
+
+# Start new server with address strategy and connection limit
+echo "Starting server with address identifier strategy..."
+node bin.js --port $PORT --identifier-strategy ip --max-connections 1 &
+RELAY_PID=$!
+
+# Wait for server to be ready
+sleep 2
+
+# Check if server started successfully
+if ! kill -0 $RELAY_PID 2>/dev/null; then
+    echo "ERROR: Address-strategy relay server failed to start"
+    exit 1
+fi
+
+# Run identifier strategy test
+if node test/integration/identifier-strategy.mjs $PORT; then
+    test_results+=("PASSED")
+    test_names+=("Identifier strategy bypass protection")
+else
+    test_results+=("FAILED")
+    test_names+=("Identifier strategy bypass protection")
+fi
+
+echo ""
+
 # Print test results summary
 echo "========================================="
 echo "Integration Test Results Summary"

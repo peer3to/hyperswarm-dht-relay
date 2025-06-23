@@ -4,7 +4,7 @@ const { NodeProxy } = require('./lib/node-proxy')
 
 module.exports = Node
 
-module.exports.relay = function relay (dht, stream, options = {}) {
+module.exports.relay = function relay (dht, stream, sharedResourceManager, options = {}) {
   const { resourceManagerOptions = {} } = options
   const protocol = new Protocol(stream)
 
@@ -13,7 +13,7 @@ module.exports.relay = function relay (dht, stream, options = {}) {
       const node = new NodeProxy(dht, protocol, {
         publicKey: message.publicKey,
         secretKey: message.secretKey
-      }, resourceManagerOptions)
+      }, sharedResourceManager, resourceManagerOptions)
 
       resolve(node)
     }
